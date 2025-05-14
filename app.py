@@ -1,13 +1,9 @@
+import argparse
 import gradio as gr
 import torch
 import torchaudio
 
 from resemble_enhance.enhancer.inference import denoise, enhance
-
-if torch.cuda.is_available():
-    device = "cuda"
-else:
-    device = "cpu"
 
 
 def _fn(path, solver, nfe, tau, denoising):
@@ -31,7 +27,19 @@ def _fn(path, solver, nfe, tau, denoising):
 
 
 def main():
-    inputs: list = [
+    parser = argparse.ArgumentParser(description="Resemble Enhance Audio Processing")
+    parser.add_argument("--share", action="store_true", help="Enable Gradio sharing")
+    parser.add_argument("--device", type=str, choices=["cpu", "cuda", "mps"], help="Device to use for processing")
+
+    args = parser.parse_args()
+
+    global device
+    if args.device:
+        device = args.device
+    else:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    inputs = [
         gr.Audio(type="filepath", label="Input Audio"),
         gr.Dropdown(choices=["Midpoint", "RK4", "Euler"], value="Midpoint", label="CFM ODE Solver"),
         gr.Slider(minimum=1, maximum=128, value=64, step=1, label="CFM Number of Function Evaluations"),
@@ -52,7 +60,7 @@ def main():
         outputs=outputs,
     )
 
-    interface.launch()
+    interface.launch(share=args.share)
 
 
 if __name__ == "__main__":
